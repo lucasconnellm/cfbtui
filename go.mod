@@ -5,10 +5,26 @@ go 1.19
 require (
 	github.com/antihax/optional v1.0.0
 	github.com/charmbracelet/bubbletea v0.22.1
+	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/lucasconnellm/gocfbd v0.0.0-20220927023453-31d6b979e25e
 )
 
 require (
+	github.com/alecthomas/chroma v0.10.0 // indirect
+	github.com/atotto/clipboard v0.1.4 // indirect
+	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/dlclark/regexp2 v1.4.0 // indirect
+	github.com/gorilla/css v1.0.0 // indirect
+	github.com/microcosm-cc/bluemonday v1.0.17 // indirect
+	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/sahilm/fuzzy v0.1.0 // indirect
+	github.com/yuin/goldmark v1.4.4 // indirect
+	github.com/yuin/goldmark-emoji v1.0.1 // indirect
+)
+
+require (
+	github.com/charmbracelet/bubbles v0.14.0
+	github.com/charmbracelet/glamour v0.5.0
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/joho/godotenv v1.4.0
