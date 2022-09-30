@@ -2,19 +2,13 @@ package cfbd
 
 import (
 	"net/http"
-	"os"
 
 	swagger "github.com/lucasconnellm/gocfbd"
 )
 
 type CfbdClient struct {
 	HttpClient    *http.Client
-	apikey        string
 	SwaggerClient *swagger.APIClient
-}
-
-func GetKey() string {
-	return os.Getenv("CFBD_KEY")
 }
 
 func GetClient() *CfbdClient {

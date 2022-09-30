@@ -1,0 +1,4 @@
+logfile: debug.log
+logprefix: debug
+
+cfbd_key: <YOUR_KEY_HERE>

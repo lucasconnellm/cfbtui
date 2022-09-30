@@ -11,6 +11,7 @@ import (
 	"github.com/lucasconnellm/cfbtui/views/team"
 	"github.com/lucasconnellm/cfbtui/views/teams"
 	gocfbd "github.com/lucasconnellm/gocfbd"
+	"github.com/spf13/viper"
 )
 
 type Component struct {
@@ -31,7 +32,7 @@ func New() *Component {
 
 func (c *Component) Init(reactea.NoProps) tea.Cmd {
 	backgroundContext := context.Background()
-	ctx := context.WithValue(backgroundContext, gocfbd.ContextAccessToken, cfbd.GetKey())
+	ctx := context.WithValue(backgroundContext, gocfbd.ContextAccessToken, viper.GetString("cfbd_key"))
 
 	client := cfbd.GetClient()
 
