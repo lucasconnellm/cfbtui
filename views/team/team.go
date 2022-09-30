@@ -1,7 +1,8 @@
-package teams
+package team
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -13,15 +14,16 @@ import (
 	"github.com/londek/reactea"
 	"github.com/lucasconnellm/cfbtui/pkg/cfbd"
 	"github.com/lucasconnellm/cfbtui/pkg/keybindings"
+
 	gocfbd "github.com/lucasconnellm/gocfbd"
 )
 
 type Props struct {
-	Conference optional.String
-	SetTeam    func(team gocfbd.Team)
+	Team    gocfbd.Team
+	SetGame func(game gocfbd.Game)
 
-	Client *cfbd.CfbdClient
 	Ctx    context.Context
+	Client *cfbd.CfbdClient
 }
 
 type Component struct {
@@ -29,18 +31,21 @@ type Component struct {
 	reactea.BasicPropfulComponent[Props]
 
 	Style       lipgloss.Style
-	Sort        optional.String
-	Teams       []gocfbd.Team
+	Game        []gocfbd.Game
 	Table       table.Model
 	KeyBindings keybindings.KeyMap
 }
 
 func New(ctx context.Context, client *cfbd.CfbdClient) *Component {
-	teamTable := table.New(table.WithFocused(true), table.WithWidth(80), table.WithColumns([]table.Column{{Title: "Name", Width: 50}, {Title: "Mascot", Width: 30}}))
+	teamTable := table.New(table.WithFocused(true), table.WithWidth(65), table.WithColumns([]table.Column{
+		{Title: "Week", Width: 10},
+		{Title: "Opponent", Width: 30},
+		{Title: "R", Width: 5},
+		{Title: "Score", Width: 20},
+	}))
 
 	return &Component{
 		Style:       lipgloss.Style{},
-		Sort:        optional.String{},
 		KeyBindings: keybindings.DefaultKeyMap(),
 		Table:       teamTable,
 	}
@@ -51,24 +56,55 @@ func (c *Component) Init(props Props) tea.Cmd {
 
 	client := c.Props().Client
 	ctx := c.Props().Ctx
-	resp, httpResp, err := client.SwaggerClient.TeamsApi.GetTeams(ctx, &gocfbd.TeamsApiGetTeamsOpts{
-		Conference: c.Props().Conference,
+	resp, httpResp, err := client.SwaggerClient.GamesApi.GetGames(ctx, 2022, &gocfbd.GamesApiGetGamesOpts{
+		Team: optional.NewString(c.Props().Team.School),
 	})
 	if err != nil {
-		log.Fatalf("Error retrieving teams: %s", err)
+		log.Fatalf("Error retrieving games: %s", err)
 	}
 	if httpResp.StatusCode != http.StatusOK {
 		log.Fatalf("Unexpected status code %d", httpResp.StatusCode)
 	}
-
-	c.Teams = resp
-
 	items := make([]table.Row, 0)
-	for _, team := range resp {
-		items = append(items, table.Row{team.School, team.Mascot})
+	for _, game := range resp {
+		isAway := game.AwayTeam == c.Props().Team.School
+		var intro string
+		if isAway {
+			intro = "@"
+		} else {
+			intro = "vs"
+		}
+
+		var opponent string
+		if isAway {
+			opponent = game.HomeTeam
+		} else {
+			opponent = game.AwayTeam
+		}
+
+		var teamPoints, opponentPoints int
+		if isAway {
+			teamPoints = int(game.AwayPoints)
+			opponentPoints = int(game.HomePoints)
+		} else {
+			teamPoints = int(game.HomePoints)
+			opponentPoints = int(game.AwayPoints)
+		}
+
+		var dubCol string
+		if teamPoints > opponentPoints {
+			dubCol = "W"
+		} else {
+			dubCol = "L"
+		}
+		items = append(items, table.Row{
+			fmt.Sprintf("%d", game.Week),
+			fmt.Sprintf("%s %s", intro, opponent),
+			dubCol,
+			fmt.Sprintf("%d-%d", teamPoints, opponentPoints),
+		})
 	}
 	c.Table.SetRows(items)
-
 	c.Table.Focus()
 	return nil
 }
@@ -81,9 +117,10 @@ func (c *Component) Update(msg tea.Msg) tea.Cmd {
 		case key.Matches(msg, c.KeyBindings.Quit):
 			return tea.Quit
 		case key.Matches(msg, c.KeyBindings.Select):
-			team := c.Teams[c.Table.Cursor()]
-			c.Props().SetTeam(team)
-			reactea.SetCurrentRoute("team")
+			log.Printf("no path to view game yet")
+			return nil
+		case key.Matches(msg, c.KeyBindings.Back):
+			reactea.SetCurrentRoute("teams")
 		}
 	}
 	update, cmd := c.Table.Update(msg)
