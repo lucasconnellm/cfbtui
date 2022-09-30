@@ -15,6 +15,9 @@ type KeyMap struct {
 	HalfPageDown key.Binding
 	Down         key.Binding
 	Up           key.Binding
+	Back         key.Binding
+	Quit         key.Binding
+	Select       key.Binding
 }
 
 // DefaultKeyMap returns a set of pager-like default keybindings.
@@ -43,6 +46,18 @@ func DefaultKeyMap() KeyMap {
 		Down: key.NewBinding(
 			key.WithKeys("down", "j"),
 			key.WithHelp("↓/j", "down"),
+		),
+		Back: key.NewBinding(
+			key.WithKeys("backspace", "left"),
+			key.WithHelp("backspace", "Go back"),
+		),
+		Quit: key.NewBinding(
+			key.WithKeys("q", "ctrl+c", "esc"),
+			key.WithHelp("q", "Exit program"),
+		),
+		Select: key.NewBinding(
+			key.WithKeys("enter"),
+			key.WithHelp("enter", "select obj"),
 		),
 	}
 }

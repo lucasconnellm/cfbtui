@@ -1,69 +1,62 @@
-package main
+package teams
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/antihax/optional"
-	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/joho/godotenv"
 	"github.com/lucasconnellm/cfbtui/pkg/cfbd"
 	"github.com/lucasconnellm/cfbtui/pkg/keybindings"
+	"github.com/lucasconnellm/cfbtui/pkg/navigation"
 	gocfbd "github.com/lucasconnellm/gocfbd"
 )
 
-type Team struct {
-	swaggerTeam gocfbd.Team
-}
-
-type TeamDelegate struct{}
-
 type Model struct {
-	Style      lipgloss.Style
-	Sort       optional.String
-	Conference optional.String
-	KeyMap     keybindings.KeyMap
-	Teams      []Team
-	List       list.Model
-}
-
-func (team Team) FilterValue() string {
-	return team.swaggerTeam.School
-}
-
-func (del TeamDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	team := item.(Team)
-	buf := bytes.NewBufferString(team.swaggerTeam.School)
-	w.Write(buf.Bytes())
-}
-
-func (del TeamDelegate) Height() int {
-	return 1
-}
-
-func (del TeamDelegate) Spacing() int {
-	return 1
-}
-
-func (del TeamDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
-	return nil
+	Style       lipgloss.Style
+	Sort        optional.String
+	Conference  optional.String
+	Teams       []gocfbd.Team
+	Table       table.Model
+	KeyBindings keybindings.KeyMap
 }
 
 func (m Model) View() string {
-	return m.List.View()
+	return m.Table.View()
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	update, cmd := m.List.Update(msg)
-	m.List = update
-	return m, cmd
+	cmds := make([]tea.Cmd, 0)
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.KeyBindings.Quit):
+			return m, tea.Quit
+		case key.Matches(msg, m.KeyBindings.Select):
+			_, cmd := m.ViewTeam()
+			cmds = append(cmds, cmd)
+		}
+	}
+	update, cmd := m.Table.Update(msg)
+	m.Table = update
+	cmds = append(cmds, cmd)
+	return m, tea.Batch(cmds...)
+}
+
+func (m Model) ViewTeam() (tea.Model, tea.Cmd) {
+	team := m.Teams[m.Table.Cursor()]
+	return m, func() tea.Msg {
+		return navigation.NavigateToTeam{
+			Team: team,
+		}
+	}
 }
 
 func (m Model) Init() tea.Cmd {
@@ -76,7 +69,8 @@ type NewOpts struct {
 
 func New(ctx context.Context, client *cfbd.CfbdClient, opts *NewOpts) Model {
 	resp, httpResp, err := client.SwaggerClient.TeamsApi.GetTeams(ctx, &gocfbd.TeamsApiGetTeamsOpts{
-		Conference: opts.conference,
+		// Conference: opts.conference,
+		Conference: optional.NewString("SEC"),
 	})
 	if err != nil {
 		log.Fatalf("Error retrieving teams: %s", err)
@@ -84,24 +78,19 @@ func New(ctx context.Context, client *cfbd.CfbdClient, opts *NewOpts) Model {
 	if httpResp.StatusCode != http.StatusOK {
 		log.Fatalf("Unexpected status code %d", httpResp.StatusCode)
 	}
-	teams := make([]Team, 0)
+	items := make([]table.Row, 0)
 	for _, team := range resp {
-		teams = append(teams, Team{swaggerTeam: team})
+		items = append(items, table.Row{team.School, team.Mascot})
 	}
-	items := make([]list.Item, 0)
-	for _, team := range teams {
-		items = append(items, team)
-	}
-	delegate := TeamDelegate{}
-	teamList := list.New(items, delegate, 80, 30)
+	teamTable := table.New(table.WithFocused(true), table.WithWidth(80), table.WithColumns([]table.Column{{Title: "Name", Width: 50}, {Title: "Mascot", Width: 30}}), table.WithRows(items))
 
 	return Model{
-		Style:      lipgloss.Style{},
-		Sort:       optional.String{},
-		Conference: optional.String{},
-		KeyMap:     keybindings.KeyMap{},
-		Teams:      teams,
-		List:       teamList,
+		Style:       lipgloss.Style{},
+		Sort:        optional.String{},
+		Conference:  optional.String{},
+		Teams:       resp,
+		KeyBindings: keybindings.DefaultKeyMap(),
+		Table:       teamTable,
 	}
 }
 

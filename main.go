@@ -13,6 +13,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/joho/godotenv"
 	"github.com/lucasconnellm/cfbtui/pkg/cfbd"
+	"github.com/lucasconnellm/cfbtui/pkg/navigation"
+	"github.com/lucasconnellm/cfbtui/views/teams"
 	gocfbd "github.com/lucasconnellm/gocfbd"
 )
 
@@ -20,6 +22,8 @@ type model struct {
 	Plays    []gocfbd.Play
 	Index    int32
 	viewport viewport.Model
+	Teams    teams.Model
+	NavStack navigation.NavigationStack
 }
 
 var helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render
@@ -51,6 +55,8 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case navigation.NavigateToTeam, navigation.NavigateToTeams:
+		navigation.PushToStack(msg)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c", "esc":
