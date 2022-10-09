@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/antihax/optional"
 	"github.com/charmbracelet/bubbles/key"
@@ -37,9 +38,10 @@ type Component struct {
 }
 
 func New(ctx context.Context, client *cfbd.CfbdClient) *Component {
-	teamTable := table.New(table.WithFocused(true), table.WithWidth(65), table.WithColumns([]table.Column{
-		{Title: "Week", Width: 10},
-		{Title: "Opponent", Width: 30},
+	teamTable := table.New(table.WithFocused(true), table.WithWidth(70), table.WithColumns([]table.Column{
+		{Title: "Week", Width: 5},
+		{Title: "Time", Width: 20},
+		{Title: "Opponent", Width: 20},
 		{Title: "R", Width: 5},
 		{Title: "Score", Width: 20},
 	}))
@@ -82,26 +84,47 @@ func (c *Component) Init(props Props) tea.Cmd {
 			opponent = game.AwayTeam
 		}
 
-		var teamPoints, opponentPoints int
-		if isAway {
-			teamPoints = int(game.AwayPoints)
-			opponentPoints = int(game.HomePoints)
+		future := false
+		var humanStartDate string
+		if game.StartTimeTbd {
+			future = true
 		} else {
-			teamPoints = int(game.HomePoints)
-			opponentPoints = int(game.AwayPoints)
+			startTime, err := time.Parse(time.RFC3339, game.StartDate)
+			humanStartDate = startTime.Format("Jan 02 T 03:04 pm")
+			if err != nil {
+				log.Fatalf("error parsing timestamp: %v", err)
+			}
+			if time.Now().Before(startTime) {
+				future = true
+			}
 		}
 
+		var teamPoints, opponentPoints int
 		var dubCol string
-		if teamPoints > opponentPoints {
-			dubCol = "W"
-		} else {
-			dubCol = "L"
+		var pointsStr string
+		if !future {
+			if isAway {
+				teamPoints = int(game.AwayPoints)
+				opponentPoints = int(game.HomePoints)
+			} else {
+				teamPoints = int(game.HomePoints)
+				opponentPoints = int(game.AwayPoints)
+			}
+
+			if teamPoints > opponentPoints {
+				dubCol = "W"
+			} else {
+				dubCol = "L"
+			}
+			pointsStr = fmt.Sprintf("%d-%d", teamPoints, opponentPoints)
 		}
+
 		items = append(items, table.Row{
 			fmt.Sprintf("%d", game.Week),
+			humanStartDate,
 			fmt.Sprintf("%s %s", intro, opponent),
 			dubCol,
-			fmt.Sprintf("%d-%d", teamPoints, opponentPoints),
+			pointsStr,
 		})
 	}
 	c.Table.SetRows(items)
