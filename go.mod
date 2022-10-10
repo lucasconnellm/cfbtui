@@ -6,7 +6,7 @@ require (
 	github.com/antihax/optional v1.0.0
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/lipgloss v0.5.0
-	github.com/londek/reactea v0.2.0
+	github.com/londek/reactea v0.4.2
 	github.com/lucasconnellm/gocfbd v0.0.0-20220927023453-31d6b979e25e
 )
 

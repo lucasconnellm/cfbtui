@@ -37,7 +37,7 @@ func (c *Component) Init(reactea.NoProps) tea.Cmd {
 	client := cfbd.GetClient()
 
 	return c.mainRouter.Init(map[string]router.RouteInitializer{
-		"default": func() (reactea.SomeComponent, tea.Cmd) {
+		"default": func(router.Params) (reactea.SomeComponent, tea.Cmd) {
 
 			component := teams.New(ctx, client)
 			return component, component.Init(teams.Props{
@@ -49,7 +49,7 @@ func (c *Component) Init(reactea.NoProps) tea.Cmd {
 				Ctx:    ctx,
 			})
 		},
-		"team": func() (reactea.SomeComponent, tea.Cmd) {
+		"team": func(router.Params) (reactea.SomeComponent, tea.Cmd) {
 			component := team.New(ctx, client)
 			return component, component.Init(team.Props{
 				Team: c.team,
